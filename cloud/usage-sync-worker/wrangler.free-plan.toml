@@ -1,0 +1,37 @@
+# DSH 驾驶舱 · 团队共享同步 Worker（免费计划配置）
+#
+# 适用：Cloudflare Workers **Free 计划**（无 Rate Limiting 绑定）。
+# 与 wrangler.example.toml 的差异：
+#   1) 不声明 AUTH_RATE_LIMITER / API_RATE_LIMITER（免费计划不支持 rate limit 绑定）；
+#   2) 增加 ALLOW_NO_RATE_LIMITER="1" 显式开启"限流降级"（其余鉴权/校验仍生效）；
+#   3) workers_dev = true，直接使用 workers.dev 子域。
+#
+# 使用步骤（详见 docs/SYNC.md §3.2）：
+#   Copy-Item wrangler.free-plan.toml wrangler.toml
+#   1. npx wrangler d1 create dsh-cockpit-sync    → 把 database_id 填到下面
+#   2. npx wrangler secret put BOOTSTRAP_SECRET   → ≥32 字节随机串
+#   3. npx wrangler d1 migrations apply dsh-cockpit-sync --remote
+#   4. npx wrangler deploy
+#
+# ⚠️ 降级模式没有请求频率限制，仅建议个人/可信小团队（≤3 台设备）使用；
+#    公网暴露或团队更大时，请升级 Workers Paid 并使用 wrangler.example.toml。
+
+name = "dsh-cockpit-usage-sync"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+preview_urls = false
+
+[vars]
+ALLOWED_ORIGIN = "https://cockpit.example.com"
+SPACE_DEVICE_LIMIT = "8"
+ALLOW_NO_RATE_LIMITER = "1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dsh-cockpit-sync"
+database_id = "<REPLACE_WITH_D1_DATABASE_ID>"
+migrations_dir = "migrations"
+
+[observability]
+enabled = true

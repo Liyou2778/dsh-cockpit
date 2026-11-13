@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: "运行 Playwright E2E（会下载 Chromium，较慢）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 真实数据冒烟默认跳过（test/real-data.test.mjs 仅在 REAL_DATA=1 时执行）
+  REAL_DATA: "0"
+
+jobs:
+  # 矩阵：3 OS × Node 22/24。零依赖，无需 npm ci；每格跑完整质量门禁。
+  verify:
+    name: verify (${{ matrix.os }} · node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22.x, 24.x]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Toolchain versions
+        run: node --version && npm --version
+      - name: Syntax (node --check 全文件)
+        run: node scripts/lint.mjs --syntax-only
+      - name: Lint (zero dependency)
+        run: node scripts/lint.mjs
+      - name: Test suite (zero dependencies)
+        run: node --test "test/*.test.mjs"
+      - name: Real-data smoke (SKIP unless REAL_DATA=1)
+        run: node --test test/real-data.test.mjs
+      - name: Coverage gate (src/core 行覆盖 ≥ 70%)
+        run: node scripts/coverage.mjs --threshold=70
+      - name: Public-leak audit
+        run: node scripts/audit-public.mjs
+      - name: CLI smoke (isolated DSH_HOME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DSH_HOME="$RUNNER_TEMP/dsh-home"
+          export DSH_COCKPIT_HOME="$RUNNER_TEMP/cockpit-home"
+          mkdir -p "$DSH_HOME/sessions"
+          node src/cli.mjs status --json > status.json
+          node -e "const s=require('./status.json'); if(!s.quota||!s.pace||!s.plan||!s.forecast) process.exit(1); if(s.health.errors!==0) process.exit(1)"
+          node src/cli.mjs doctor || true
+      - name: Fixture scan smoke (isolated DSH_HOME)
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DSH_HOME="$RUNNER_TEMP/dsh-fixture"
+          export DSH_COCKPIT_HOME="$RUNNER_TEMP/cockpit-fixture"
+          node --input-type=module -e "
+            import { writeSyntheticSession, sessionHeader, assistantEvent } from './test/helpers.mjs';
+            const root = process.env.DSH_HOME + '/sessions';
+            const lines = [sessionHeader({ id: 'session-ci' }), assistantEvent({ time: Date.now(), inputTokens: 100, outputTokens: 10 })];
+            writeSyntheticSession(root, { lines });
+          "
+          node src/cli.mjs scan --json > scan.json
+          node -e "const s=require('./scan.json'); if(s.sessionsScanned<1||s.errors!==0) process.exit(1)"
+
+  # 时区矩阵：Linux 上额外跑 UTC / Asia/Shanghai / America/Los_Angeles（日界线与统计日边界回归）。
+  timezone:
+    name: timezone (${{ matrix.tz }} · node 24)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tz: [UTC, Asia/Shanghai, America/Los_Angeles]
+    env:
+      TZ: ${{ matrix.tz }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Test suite under TZ=${{ matrix.tz }}
+        run: node --test "test/*.test.mjs"
+      - name: Status / plan smoke under TZ=${{ matrix.tz }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DSH_HOME="$RUNNER_TEMP/dsh-tz"
+          export DSH_COCKPIT_HOME="$RUNNER_TEMP/cockpit-tz"
+          mkdir -p "$DSH_HOME/sessions"
+          node src/cli.mjs status --json > status.json
+          node src/cli.mjs plan > plan.txt
+          node -e "const s=require('./status.json'); if(!s.generatedAt||!s.range) { console.error('status 缺字段'); process.exit(1); }"
+          test -s plan.txt
+
+  # E2E 为手动触发（浏览器下载成本高，且需要真实 Chromium）。
+  # 本地等价命令：npm i --no-save @playwright/test && npx playwright install chromium && npx playwright test
+  e2e:
+    name: e2e (playwright · manual)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_e2e }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - name: Install Playwright (no package.json changes)
+        run: npm install --no-save --no-package-lock @playwright/test@1.64.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: E2E smoke (pure Node, no browser)
+        run: node test/e2e/smoke.node.mjs --strict
+      - name: Playwright E2E (5 主路径)
+        run: npx playwright test
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: .cockpit-e2e
+          if-no-files-found: ignore

@@ -1,0 +1,5 @@
+# DSH 驾驶舱插件：把 /dsh-cockpit 挂到 DSH Web GUI 的同源子路径。
+# 需要先通过 `dsh plugin --profile <name> add "file:<repo>/dsh-plugin"` 安装本包。
+- insert:
+    - id: dsh-cockpit
+      name: 'dsh-cockpit-plugin'

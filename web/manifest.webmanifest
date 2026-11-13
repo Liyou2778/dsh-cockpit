@@ -1,0 +1,23 @@
+{
+  "name": "DSH Cockpit — DeepSeek Harness 驾驶舱",
+  "short_name": "DSH 驾驶舱",
+  "description": "本地只读的 DeepSeek Harness 用量/成本/上下文驾驶舱",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#f1f4fd",
+  "theme_color": "#1b2342",
+  "lang": "zh-CN",
+  "categories": ["developer", "productivity", "utilities"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "今日用量", "url": "/#range=today", "description": "打开今日视图" },
+    { "name": "近 7 天", "url": "/#range=7d", "description": "打开近 7 天视图" }
+  ]
+}

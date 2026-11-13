@@ -1,0 +1,161 @@
+/* ============================================================
+   WALLPAPER PALETTE — 取自本机桌面壁纸（ASUS teal / charcoal / silver）
+   主色 #10E0D0 · 深炭 #202020 · 银白 #F2FAF8
+   ============================================================ */
+
+:root,
+[data-theme="light"] {
+  --bg: #f4fbf9;
+  --bg-2: #e9f6f3;
+  --panel: rgba(255, 255, 255, 0.86);
+  --card: rgba(255, 255, 255, 0.74);
+  --card-strong: rgba(255, 255, 255, 0.55);
+  --surface-1: rgba(16, 224, 208, 0.05);
+  --surface-2: rgba(16, 224, 208, 0.09);
+  --surface-3: rgba(16, 224, 208, 0.14);
+  --hover: rgba(16, 224, 208, 0.1);
+  --track: rgba(18, 60, 55, 0.1);
+  --inset-line: rgba(18, 60, 55, 0.075);
+  --stroke: rgba(18, 60, 55, 0.15);
+  --stroke-strong: rgba(18, 60, 55, 0.42);
+  --text: #12211f;
+  --text-2: #46605b;
+  --text-3: #7d918c;
+  --signal: #0aa99a;
+  --hl: #10c9b5;
+  --signal-contrast: #062825;
+  --cyan: #10c9b5;
+  --mint: #0ea97f;
+  --amber: #e8930c;
+  --red: #e5484d;
+  --cyan-soft: rgba(16, 201, 181, 0.12);
+  --line: rgba(18, 60, 55, 0.12);
+  --grid-line: transparent;
+  --shadow: 0 1px 2px rgba(12, 60, 54, 0.04), 0 10px 30px rgba(9, 80, 72, 0.07);
+  --elev: 0 24px 60px rgba(9, 60, 54, 0.16);
+}
+[data-theme="dark"] {
+  --bg: #0c1213;
+  --bg-2: #121b1c;
+  --panel: rgba(17, 26, 27, 0.82);
+  --card: rgba(23, 33, 34, 0.62);
+  --card-strong: rgba(31, 43, 44, 0.5);
+  --surface-1: rgba(255, 255, 255, 0.04);
+  --surface-2: rgba(31, 224, 204, 0.08);
+  --surface-3: rgba(31, 224, 204, 0.14);
+  --hover: rgba(31, 224, 204, 0.1);
+  --track: rgba(255, 255, 255, 0.1);
+  --inset-line: rgba(255, 255, 255, 0.07);
+  --stroke: rgba(255, 255, 255, 0.15);
+  --text: #e8f3f0;
+  --text-2: #a3b7b2;
+  --text-3: #6f8581;
+  --signal: #22e5d0;
+  --hl: #1fe0cc;
+  --signal-contrast: #052421;
+  --cyan: #1fe0cc;
+  --mint: #2ee0a8;
+  --amber: #f0a52a;
+  --red: #ff6b70;
+  --line: rgba(255, 255, 255, 0.1);
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.42);
+}
+
+/* 画布：壁纸同源青绿柔光 + 斜向纹理 */
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(1000px 520px at 8% -8%, rgba(16, 224, 208, 0.16), transparent 62%),
+    radial-gradient(900px 460px at 100% 0%, rgba(16, 224, 208, 0.08), transparent 58%),
+    linear-gradient(135deg, transparent 0 46%, rgba(16, 224, 208, 0.035) 46% 47%, transparent 47% 100%);
+  background-size: 100% 100%, 100% 100%, 26px 26px;
+}
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(1000px 520px at 8% -8%, rgba(31, 224, 204, 0.14), transparent 62%),
+    radial-gradient(900px 460px at 100% 0%, rgba(31, 224, 204, 0.07), transparent 58%),
+    linear-gradient(135deg, transparent 0 46%, rgba(31, 224, 204, 0.03) 46% 47%, transparent 47% 100%);
+  background-size: 100% 100%, 100% 100%, 26px 26px;
+}
+body::before {
+  display: block;
+  background:
+    radial-gradient(700px 340px at 88% 8%, rgba(16, 224, 208, 0.12), transparent 62%),
+    linear-gradient(180deg, rgba(16, 224, 208, 0.06), transparent 200px);
+}
+[data-theme="dark"] body::before {
+  background:
+    radial-gradient(700px 340px at 88% 8%, rgba(31, 224, 204, 0.1), transparent 62%),
+    linear-gradient(180deg, rgba(31, 224, 204, 0.05), transparent 200px);
+}
+
+/* 青绿强调替换到全部组件 */
+.rail-item.is-active,
+.rail .rail-item.is-active {
+  background: linear-gradient(180deg, #2be3d0, #10c9b5) !important;
+  color: #052421 !important;
+  box-shadow: 0 6px 18px rgba(16, 224, 208, 0.3) !important;
+}
+.rail .rail-item.is-active .rail-num,
+.rail .rail-item.is-active .rail-label,
+.rail .rail-item.is-active .rail-label small { color: #052421 !important; }
+[data-theme="dark"] .rail-item.is-active { background: linear-gradient(180deg, #2be3d0, #10c9b5) !important; color: #052421 !important; }
+
+.btn-primary, #receipt-btn { background: #12211f !important; color: #eafffb !important; border-color: #12211f !important; }
+.btn-primary:hover, #receipt-btn:hover { background: var(--hl) !important; color: #052421 !important; border-color: var(--hl) !important; }
+[data-theme="dark"] .btn-primary, [data-theme="dark"] #receipt-btn { background: var(--hl) !important; color: #052421 !important; border-color: var(--hl) !important; }
+
+.seg-btn.is-active, .tab-btn.is-active,
+.range-tabs .seg-btn.is-active {
+  background: #12211f !important;
+  color: #f2faf8 !important;
+  border-color: #12211f !important;
+}
+[data-theme="dark"] .seg-btn.is-active,
+[data-theme="dark"] .tab-btn.is-active,
+[data-theme="dark"] .range-tabs .seg-btn.is-active {
+  background: var(--hl) !important;
+  color: #052421 !important;
+  border-color: var(--hl) !important;
+}
+
+.ring-progress { stroke: var(--hl) !important; }
+.ring-unit:nth-child(2) .ring-progress { stroke: var(--text-2) !important; }
+.meter-fill, .mini-meter i, .gauge i { background: var(--hl) !important; }
+.meter.is-warn .meter-fill { background: repeating-linear-gradient(135deg, var(--amber) 0 5px, #2b2b2b 5px 8px) !important; }
+.meter.is-bad .meter-fill { background: repeating-linear-gradient(135deg, var(--red) 0 5px, #2b2b2b 5px 8px) !important; }
+.share-bar i, .rank-bar i { background: var(--hl); }
+
+/* 壁纸的角标 X 元素（右下 / 页脚） */
+.statusrail::after {
+  content: "✕  ✕  ✕  ✕";
+  display: block;
+  margin-top: auto;
+  padding: 10px 2px 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.5em;
+  color: var(--text-3);
+  text-align: right;
+}
+.page-foot::after {
+  content: "END / 00:00";
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: var(--text-3);
+}
+
+/* 卡片悬停：青绿描边 + 柔光 */
+.card:hover {
+  border-color: rgba(16, 224, 208, 0.45);
+  box-shadow: 0 2px 4px rgba(9, 60, 54, 0.05), 0 18px 44px rgba(9, 90, 80, 0.12);
+}
+.card-head::before { background: var(--hl); }
+.card-title::before { color: var(--hl); }
+.sub-title { border-left-color: var(--hl); }
+.insights-list li { border-left-color: var(--hl); }
+.heat-cell[data-level="1"] { background: rgba(16, 224, 208, 0.18); }
+.heat-cell[data-level="2"] { background: rgba(16, 224, 208, 0.36); }
+.heat-cell[data-level="3"] { background: rgba(16, 224, 208, 0.58); }
+.heat-cell[data-level="4"] { background: #10e0d0; }

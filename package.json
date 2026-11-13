@@ -1,0 +1,59 @@
+{
+  "name": "dsh-cockpit",
+  "version": "0.19.0",
+  "description": "DeepSeek Harness 驾驶舱：本地只读的 token / 成本 / 上下文压力观测器，含配速、今日计划与压缩预测",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=22.15"
+  },
+  "bin": {
+    "dsh-cockpit": "./src/cli.mjs"
+  },
+  "exports": {
+    ".": "./src/core/index.mjs",
+    "./server": "./src/server.mjs"
+  },
+  "files": [
+    "src",
+    "web",
+    "dsh-plugin",
+    "docs",
+    "scripts",
+    "README.md",
+    "AGENTS.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "node test/e2e/smoke.node.mjs",
+    "lint": "node scripts/lint.mjs",
+    "coverage": "node scripts/coverage.mjs",
+    "scan": "node ./src/cli.mjs scan",
+    "status": "node ./src/cli.mjs status",
+    "serve": "node ./src/cli.mjs serve",
+    "doctor": "node ./src/cli.mjs doctor",
+    "audit:public": "node ./scripts/audit-public.mjs"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "token-usage",
+    "cost-tracking",
+    "dashboard",
+    "cockpit"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.64.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Liyou2778/dsh-cockpit.git"
+  },
+  "homepage": "https://github.com/Liyou2778/dsh-cockpit#readme",
+  "bugs": {
+    "url": "https://github.com/Liyou2778/dsh-cockpit/issues"
+  }
+}

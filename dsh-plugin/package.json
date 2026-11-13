@@ -1,0 +1,19 @@
+{
+  "name": "dsh-cockpit-plugin",
+  "version": "0.1.0",
+  "description": "把 DSH 驾驶舱挂到 DeepSeek Harness 的 Web GUI 上（/dsh-cockpit 子路径）",
+  "type": "module",
+  "main": "./index.js",
+  "license": "MIT",
+  "private": true,
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md"
+  ]
+}

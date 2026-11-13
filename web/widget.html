@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肥鱼 · 女仆管家</title>
+<style>
+  :root {
+    --ink: #1a2450;
+    --sub: #4f5c8c;
+    --mute: #8a93b8;
+    --blue: #4f6bd8;
+    --deep: #1e2a5a;
+    --lav: #8f9fe0;
+    --gold: #e8c36b;
+    --rose: #f2b8c6;
+    --card: rgba(255, 255, 255, 0.94);
+    --line: rgba(40, 60, 130, 0.14);
+    --shadow: 0 16px 40px rgba(30, 50, 120, 0.26);
+  }
+  [data-theme="dark"] {
+    --ink: #e9edfb;
+    --sub: #aab5da;
+    --mute: #7c88b4;
+    --blue: #8fa8ff;
+    --deep: #0d1533;
+    --lav: #b9a6ff;
+    --gold: #f2d489;
+    --rose: #ffb3c6;
+    --card: rgba(20, 29, 60, 0.92);
+    --line: rgba(255, 255, 255, 0.12);
+    --shadow: 0 18px 44px rgba(4, 8, 24, 0.6);
+  }
+  * { box-sizing: border-box; user-select: none; }
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  body {
+    font-family: "Inter", "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    color: var(--ink);
+    padding: 8px;
+  }
+  .card {
+    position: relative;
+    height: 100%;
+    border-radius: 26px;
+    background: linear-gradient(180deg, rgba(255,255,255,.55), var(--card) 40%);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(20px) saturate(1.1);
+    overflow: hidden;
+    padding: 14px 16px;
+    cursor: grab;
+  }
+  [data-theme="dark"] .card { background: linear-gradient(180deg, rgba(40,55,110,.35), var(--card) 45%); border-color: rgba(255,255,255,.1); }
+  .card:active { cursor: grabbing; }
+  .aurora {
+    position: absolute; inset: -30% -20% auto -20%; height: 90%;
+    background: radial-gradient(50% 60% at 25% 25%, rgba(79,107,216,.3), transparent 70%),
+                radial-gradient(45% 55% at 88% 0%, rgba(143,159,224,.26), transparent 70%);
+    pointer-events: none;
+  }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: relative; z-index: 2; }
+  .kicker { font-size: 10px; letter-spacing: 0.14em; color: var(--mute); }
+  .mood { font-size: 10px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--sub); background: rgba(255,255,255,.5); }
+  [data-theme="dark"] .mood { background: rgba(255,255,255,.06); }
+  .mood.happy { color: #2f8f6e; border-color: rgba(95,201,181,.5); }
+  .mood.worried { color: #b4712a; border-color: rgba(232,169,60,.5); }
+  .mood.alert { color: #c04a68; border-color: rgba(242,131,160,.55); }
+  .balance { position: relative; z-index: 2; margin-top: 4px; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+  .balance small { font-size: 12px; color: var(--mute); font-weight: 600; margin-left: 4px; }
+  .subs { position: relative; z-index: 2; display: flex; gap: 12px; font-size: 11px; color: var(--sub); margin-top: 6px; padding-right: 150px; }
+  .subs b { color: var(--ink); font-weight: 700; }
+  .petwrap { position: absolute; right: -6px; bottom: -14px; z-index: 3; width: 218px; height: 122px; pointer-events: none; }
+  .pet { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(30,50,120,.3)); pointer-events: auto; cursor: pointer; }
+  .hint { position: absolute; left: 16px; bottom: 10px; z-index: 4; font-size: 9.5px; color: var(--mute); }
+  .hint b { color: var(--blue); }
+  .credit { position: absolute; left: 16px; bottom: 24px; z-index: 4; font-size: 8px; color: var(--mute); opacity: .8; }
+  .bubble {
+    position: absolute; left: 12px; right: 96px; bottom: 12px; z-index: 6;
+    background: linear-gradient(135deg, #6c86ea, #9a86e8);
+    color: #fff; border-radius: 16px 16px 16px 4px; padding: 9px 11px; font-size: 11.5px; line-height: 1.5;
+    box-shadow: 0 12px 26px rgba(79,107,216,.4);
+    transform: translateY(10px) scale(.98); opacity: 0; pointer-events: none;
+    transition: all .26s cubic-bezier(.2,.9,.2,1);
+  }
+  .bubble.show { transform: none; opacity: 1; }
+  .bubble b { font-weight: 700; }
+  .offline { position: absolute; left: 16px; top: 62px; z-index: 5; font-size: 9px; color: var(--rose); display: none; }
+  body.is-offline .offline { display: block; }
+</style>
+</head>
+<body>
+  <div class="card" id="card">
+    <div class="aurora"></div>
+    <div class="head">
+      <span class="kicker">大肥鱼 · 女仆管家</span>
+      <span class="mood" id="mood">在的</span>
+    </div>
+    <div class="balance" id="balance">—</div>
+    <div class="subs">
+      <span>今日 <b id="today-cost">—</b></span>
+      <span><b id="today-tokens">—</b> tokens</span>
+    </div>
+    <div class="petwrap">
+      <video class="pet" id="pet" muted playsinline preload="auto" src="./assets/pet/daiji-huxi-xiuxian.webm"></video>
+    </div>
+    <div class="credit" id="credit">形象 © YunYueSama · 动画 dsh-pet (CC BY-NC-SA 4.0)</div>
+    <div class="hint">双击展开驾驶舱 · 单击互动 · 拖拽移动</div>
+    <div class="bubble" id="bubble"></div>
+    <div class="offline">后端未连接，显示最后缓存</div>
+  </div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const post = (msg) => { try { window.chrome?.webview?.postMessage(JSON.stringify(msg)); } catch {} };
+    const CLIPS = {
+      idle: "./assets/pet/daiji-huxi-xiuxian.webm",
+      look: "./assets/pet/dongzhangxiwang.webm",
+      bow: "./assets/pet/maid-bow.webm",
+      dance: "./assets/pet/maid-dance.webm",
+      wave: "./assets/pet/click-wave.webm",
+      pout: "./assets/pet/click-tsun.webm",
+      think: "./assets/pet/think.webm",
+      sleep: "./assets/pet/sleep.webm",
+    };
+    const LOOPING = new Set(["idle", "sleep"]);
+    const LINES = {
+      greet: ["主人，你终于回来了…", "大肥鱼一直在这里看着呢。", "主人，今天也请多指教。"],
+      idle: ["主人，余额大肥鱼都记着呢。", "嗯？主人需要大肥鱼做什么吗？", "今天也要好好工作哦，主人。", "大肥鱼没有偷懒，只是闭了一下眼睛…"],
+      click: ["诶？主人叫我？", "才、才没有偷懒呢！", "大肥鱼在的，主人你说。", "哼，主人终于想起我了。"],
+      low: ["主人，余额不多了…要不要先充一点？", "呜…大肥鱼有点担心余额呢。"],
+      risk: ["主人，额度快见底了，要省着点用哦。", "呜哇，用量涨得好快…"],
+      turn: "主人这一轮花了 ≈<b>{cost}</b>，大肥鱼记住了。",
+      wake: ["我醒着呢…刚才只是闭了一下眼睛。", "主人？大肥鱼刚睡醒…"],
+    };
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    let last = { tokens: null, cost: null };
+    let curClip = "idle";
+    let nightMode = false;
+    let moodTimer = 0;
+
+    const pet = $("pet");
+    function play(name, holdMs = 0) {
+      if (!CLIPS[name]) return;
+      const looping = LOOPING.has(name);
+      if (curClip === name && looping) return;
+      curClip = name;
+      try {
+        pet.src = CLIPS[name];
+        pet.loop = looping;
+        pet.play().catch(() => {});
+      } catch {}
+      clearTimeout(play._t);
+      if (holdMs > 0) play._t = setTimeout(() => { if (!nightMode) play("idle"); }, holdMs);
+    }
+    function say(text, ms = 4600) {
+      const bubble = $("bubble");
+      bubble.innerHTML = text;
+      bubble.classList.add("show");
+      clearTimeout(say._t);
+      say._t = setTimeout(() => bubble.classList.remove("show"), ms);
+    }
+    function mood(text, cls) { const el = $("mood"); el.textContent = text; el.className = "mood " + (cls || ""); }
+    const fmtCny = (n) => Number.isFinite(n) ? "¥" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "—";
+    const fmtTokens = (n) => {
+      if (!Number.isFinite(n)) return "—";
+      if (n >= 1e8) return (n / 1e8).toFixed(2) + "亿";
+      if (n >= 1e4) return (n / 1e4).toFixed(1) + "万";
+      return String(Math.round(n));
+    };
+    function roll(el, text) {
+      if (!el || el.textContent === text) return;
+      el.style.transition = "none"; el.style.opacity = "0.4"; el.style.transform = "translateY(5px)";
+      requestAnimationFrame(() => {
+        el.textContent = text;
+        el.style.transition = "all .26s cubic-bezier(.2,.9,.2,1)";
+        el.style.opacity = "1"; el.style.transform = "none";
+      });
+    }
+    function render(status, account) {
+      const balance = Number(account?.normalBalanceNum ?? account?.normalBalance
+        ?? status?.account?.normalBalanceNum ?? status?.account?.normalBalance);
+      const cost = Number(status?.totals?.todayCostCny);
+      const tokens = Number(status?.totals?.todayTokens);
+      roll($("balance"), fmtCny(balance));
+      $("today-cost").textContent = Number.isFinite(cost) ? "≈" + fmtCny(cost) : "—";
+      $("today-tokens").textContent = fmtTokens(tokens);
+      const used = Number(status?.quota?.usedPercent);
+      const pressure = Number(status?.context?.percent);
+      const risk = Number(status?.forecast?.score);
+      nightMode = new Date().getHours() >= 23 || new Date().getHours() < 6;
+
+      if (Number.isFinite(balance) && balance < 20) {
+        mood("担心余额", "worried");
+        if (++moodTimer % 3 === 1) { play("pout", 4200); say(pick(LINES.low)); }
+      } else if ((Number.isFinite(used) && used >= 90) || (Number.isFinite(risk) && risk >= 60) || (Number.isFinite(pressure) && pressure >= 75)) {
+        mood("有点紧张", "alert");
+        if (++moodTimer % 3 === 2) { play("think", 4200); say(pick(LINES.risk)); }
+      } else if (Number.isFinite(tokens) && last.tokens !== null && tokens > last.tokens) {
+        const dCost = Number.isFinite(cost) && Number.isFinite(last.cost) ? Math.max(0, cost - last.cost) : null;
+        mood("注意到花费", "happy");
+        play("wave", 3600);
+        say(LINES.turn.replace("{cost}", dCost === null ? "—" : fmtCny(dCost)));
+      } else {
+        mood(nightMode ? "犯困" : "在的");
+      }
+      if (Number.isFinite(tokens)) last.tokens = tokens;
+      if (Number.isFinite(cost)) last.cost = cost;
+      if (nightMode && curClip !== "sleep") { play("sleep"); }
+      if (!nightMode && curClip === "sleep") { play("idle"); }
+    }
+    async function poll() {
+      try {
+        const [sres, ares] = await Promise.all([
+          fetch("api/status?range=today", { cache: "no-store" }),
+          fetch("api/account", { cache: "no-store" }),
+        ]);
+        if (!sres.ok) throw new Error("status");
+        render(await sres.json(), ares.ok ? await ares.json() : null);
+        document.body.classList.remove("is-offline");
+      } catch { document.body.classList.add("is-offline"); }
+    }
+    async function idleLoop() {
+      if (nightMode) { if (curClip !== "sleep") play("sleep"); return; }
+      if (curClip === "sleep") play("idle");
+      if (document.body.classList.contains("is-offline")) return;
+      const r = Math.random();
+      if (r < 0.24) play("look", 2600);
+      else if (r < 0.4) play("bow", 3200);
+      else if (r < 0.46) play("dance", 4200);
+      else if (r < 0.58) { play("think", 3000); say(pick(LINES.idle), 3200); }
+      else play("idle");
+    }
+    try {
+      const saved = localStorage.getItem("dsh.theme");
+      if (saved === "dark") document.documentElement.dataset.theme = "dark";
+      else if (saved === "light") document.documentElement.dataset.theme = "light";
+      else if (matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
+    } catch {}
+
+    const card = $("card");
+    let dragging = false, lastX = 0, lastY = 0, moved = 0;
+    card.addEventListener("pointerdown", (ev) => {
+      if (ev.button !== 0) return;
+      dragging = true; moved = 0; lastX = ev.screenX; lastY = ev.screenY;
+      try { card.setPointerCapture(ev.pointerId); } catch {}
+    });
+    card.addEventListener("pointermove", (ev) => {
+      if (!dragging) return;
+      const dx = ev.screenX - lastX, dy = ev.screenY - lastY;
+      if (dx || dy) { post({ type: "move", dx, dy }); moved += Math.abs(dx) + Math.abs(dy); }
+      lastX = ev.screenX; lastY = ev.screenY;
+    });
+    card.addEventListener("pointerup", () => {
+      if (!dragging) return;
+      dragging = false;
+      post({ type: "dragend" });
+    });
+    card.addEventListener("click", (ev) => {
+      if (moved > 6) return;
+      if (ev.target.id === "pet" || ev.target.closest(".petwrap")) {
+        const r = Math.random();
+        if (r < 0.5) { play("wave", 3000); say(pick(LINES.click)); }
+        else { play("pout", 3200); say(pick(LINES.click)); }
+      } else if (!ev.target.closest(".credit")) {
+        say(pick(LINES.greet));
+      }
+    });
+    card.addEventListener("dblclick", (ev) => { ev.preventDefault(); post({ type: "restore" }); });
+    card.addEventListener("contextmenu", (ev) => { ev.preventDefault(); post({ type: "menu" }); });
+    window.addEventListener("keydown", (ev) => { if (ev.key === "Escape") post({ type: "restore" }); });
+    pet.addEventListener("error", () => { $("petwrap").innerHTML = '<img class="pet" src="./assets/pet/portrait.png" alt="大肥鱼">'; });
+
+    play("idle");
+    setTimeout(() => say(pick(LINES.greet)), 1200);
+    poll();
+    setInterval(poll, 5000);
+    setInterval(idleLoop, 14000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+﻿# DSH 驾驶舱 · 团队共享同步 Worker（示例配置）
+#
+# 使用方式：复制为 wrangler.toml 后填写真实值（wrangler.toml 不要提交到仓库）：
+#   Copy-Item wrangler.example.toml wrangler.toml      # PowerShell
+#   cp wrangler.example.toml wrangler.toml             # bash
+#
+# 部署步骤见仓库 docs/SYNC.md，核心顺序：
+#   1. npx wrangler d1 create dsh-cockpit-sync     → 把 database_id 填到下面
+#   2. npx wrangler secret put BOOTSTRAP_SECRET    → 生成 ≥32 字节随机串（不要写进本文件）
+#   3. npx wrangler d1 migrations apply dsh-cockpit-sync --remote
+#   4. npx wrangler deploy
+#
+# 注意：AUTH_RATE_LIMITER / API_RATE_LIMITER 绑定缺失时 Worker 会 fail-closed 返回 503，
+# 不要为了"先跑通"删除这两个绑定。
+
+name = "dsh-cockpit-usage-sync"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+preview_urls = false
+
+# 非机密配置。ALLOWED_ORIGIN 必须精确等于调用方的浏览器 Origin（协议 + 主机 + 端口），
+# 支持逗号分隔多个；留空会让服务 fail-closed（503 SERVER_MISCONFIGURED）。
+[vars]
+ALLOWED_ORIGIN = "https://your-cockpit.example.com"
+SPACE_DEVICE_LIMIT = "32" # 只能调低；硬上限 32
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dsh-cockpit-sync"
+database_id = "<REPLACE_WITH_D1_DATABASE_ID>"
+migrations_dir = "migrations"
+
+# Workers 限流绑定（每 60s 窗口）。namespace_id 在同一账号内需唯一。
+# 若你的 wrangler 版本支持一等公民 [[ratelimits]] 配置，可等价替换成：
+#   [[ratelimits]]
+#   name = "AUTH_RATE_LIMITER"
+#   namespace_id = "1001"
+#   simple = { limit = 20, period = 60 }
+[[unsafe.bindings]]
+name = "AUTH_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+[[unsafe.bindings]]
+name = "API_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 120, period = 60 }
+
+[observability]
+enabled = true

@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="DeepSeek Harness 本地只读驾驶舱：Token 用量、成本估算、任务下钻、上下文压力与压缩预测。">
+  <title>DeepSeek 驾驶舱 · DSH COCKPIT</title>
+  <link rel="stylesheet" href="./styles.css?v=13">
+  <link rel="stylesheet" href="./endfield.css?v=13">
+  <link rel="stylesheet" href="./rhodes.css?v=14">
+  <link rel="stylesheet" href="./refine.css?v=15">
+  <link rel="stylesheet" href="./whale.css?v=17">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#1b2342">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script>if ("serviceWorker" in navigator) { addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => undefined)); }</script>
+</head>
+<body class="is-booting">
+  <a class="skip-link" href="#main" data-i18n="common.skip">跳到主要内容</a>
+
+  <!-- ENDFIELD 特效层 / 启动序列 -->
+  <div class="fx-grid" aria-hidden="true"></div>
+  <div class="fx-scan" aria-hidden="true"></div>
+  <div class="boot" id="boot" aria-hidden="true">
+    <div class="boot-inner">
+      <div class="boot-kicker">ARKNIGHTS // ENDFIELD · TALOS TERMINAL · LOCAL READ-ONLY</div>
+      <div class="boot-title">DSH <span>COCKPIT</span></div>
+      <img class="boot-mascot" src="./assets/pet/portrait.png" alt="大肥鱼">
+      <div class="boot-log" id="boot-log"></div>
+      <div class="boot-bar"><i></i></div>
+    </div>
+  </div>
+
+  <!-- 左侧终端导航 -->
+  <aside class="rail" aria-label="终端导航">
+    <div class="rail-brand">
+      <div>
+        <img class="whale-brand-avatar" src="./assets/pet/app-icon-src.png" alt="小鲸鱼"><span class="rail-logo-sub">WHALE // DSH</span>
+      </div>
+    </div>
+    <nav class="rail-nav" id="rail-nav">
+      <button class="rail-item is-active" type="button" data-nav="overview"><span class="rail-num">01</span><span class="rail-label">总览<small>OVERVIEW</small></span></button>
+      <button class="rail-item" type="button" data-nav="usage"><span class="rail-num">02</span><span class="rail-label">用量<small>USAGE</small></span></button>
+      <button class="rail-item" type="button" data-nav="tasks"><span class="rail-num">03</span><span class="rail-label">任务<small>TASKS</small></span></button>
+      <button class="rail-item" type="button" data-nav="team"><span class="rail-num">04</span><span class="rail-label">成员<small>TEAM</small></span></button>
+      <button class="rail-item" type="button" data-nav="receipt"><span class="rail-num">05</span><span class="rail-label">小票<small>RECEIPT</small></span></button>
+      <button class="rail-item" type="button" data-nav="sys"><span class="rail-num">06</span><span class="rail-label">系统<small>SYSTEM</small></span></button>
+    </nav>
+    <div class="rail-foot">
+      <button class="rail-icon" id="theme-toggle" type="button" title="切换深浅主题" aria-label="切换深浅主题">◐</button>
+      <button class="rail-icon" id="fx-toggle" type="button" title="开启/关闭扫描线特效" aria-label="特效开关">✦</button>
+      <span class="rail-ver">v0.12.0</span>
+    </div>
+  </aside>
+
+
+  <!-- 后端不可达横幅（可关闭） -->
+  <div class="banner" id="net-banner" role="alert" hidden>
+    <span class="banner-dot" aria-hidden="true"></span>
+    <p class="banner-text" id="banner-text" data-i18n="common.offline">后端不可达 · 正在显示上次数据</p>
+    <button class="banner-close" id="banner-close" type="button" aria-label="关闭后端不可达提示" data-i18n-aria="banner.closeAria">×</button>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <img class="whale-brand-avatar" src="./assets/pet/app-icon-src.png" alt="小鲸鱼">
+      <div class="brand-text">
+        <h1 class="brand-title" data-i18n="app.title" data-text="DSH COCKPIT // 驾驶舱">DeepSeek 驾驶舱</h1>
+        <span class="brand-sub" data-i18n="app.subtitle">DSH COCKPIT</span>
+      </div>
+    </div>
+    <div class="topbar-meta">
+      <span class="mode-badge is-unknown" id="mode-badge">模式未知</span>
+      <time class="last-refresh" id="last-refresh" data-i18n="common.waiting">等待首次同步…</time>
+      <div class="topbar-actions">
+        <button class="btn btn-icon-only" id="notif-btn" type="button" data-testid="notify-bell" aria-haspopup="true" aria-expanded="false" aria-label="通知" data-i18n-aria="common.notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round"/></svg>
+          <span class="notif-badge" id="notif-count" hidden>0</span>
+        </button>
+        <button class="btn" id="refresh-btn" type="button" aria-label="重新扫描并刷新仪表盘" data-i18n-aria="top.refreshAria"><span class="btn-icon" aria-hidden="true">↻</span><span data-i18n="common.refresh">刷新</span></button>
+        <button class="btn" id="settings-btn" type="button" aria-label="打开设置抽屉" aria-haspopup="dialog" aria-controls="drawer" data-i18n-aria="top.settingsAria"><span class="btn-icon" aria-hidden="true">⚙</span><span data-i18n="common.settings">设置</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 范围条 -->
+  <nav class="rangebar" id="range-bar" data-testid="range-bar" aria-label="选择时间范围" data-i18n-aria="range.aria">
+    <div class="range-tabs" id="range-tabs" role="group" aria-label="选择时间范围" data-i18n-aria="range.aria">
+      <button class="seg-btn is-active" type="button" data-range="cycle" aria-pressed="true" data-i18n="range.cycle">周期</button>
+      <button class="seg-btn" type="button" data-range="today" aria-pressed="false" data-i18n="range.today">今日</button>
+      <button class="seg-btn" type="button" data-range="7d" aria-pressed="false" data-i18n="range.7d">7 天</button>
+      <button class="seg-btn" type="button" data-range="30d" aria-pressed="false" data-i18n="range.30d">30 天</button>
+      <button class="seg-btn" type="button" data-range="90d" aria-pressed="false" data-i18n="range.90d">90 天</button>
+      <button class="seg-btn" type="button" data-range="all" aria-pressed="false" data-i18n="range.all">全部</button>
+      <button class="seg-btn" type="button" data-range="custom" aria-pressed="false" data-i18n="range.custom">自定义</button>
+    </div>
+    <div class="range-custom" id="range-custom" hidden>
+      <label class="sr-only" for="range-from" data-i18n="range.from">从</label>
+      <input class="input range-date" id="range-from" type="date">
+      <span class="range-dash" aria-hidden="true">–</span>
+      <label class="sr-only" for="range-to" data-i18n="range.to">到</label>
+      <input class="input range-date" id="range-to" type="date">
+      <button class="btn btn-sm" id="range-apply" type="button" data-i18n="range.apply">应用</button>
+    </div>
+    <span class="range-label" id="range-label" aria-live="polite">—</span>
+  </nav>
+
+  <!-- 通知下拉面板 -->
+  <section class="notif-panel" id="notif-panel" aria-label="通知" data-i18n-aria="common.notifications" hidden>
+    <div class="notif-head"><strong data-i18n="notify.title">通知</strong><button class="btn btn-sm" id="notif-mark-all" type="button" data-testid="notify-read-all" data-i18n="notify.markAll">全部已读</button></div>
+    <ul class="notif-list" id="notif-list"></ul>
+    <p class="empty sm" id="notif-empty" hidden data-i18n="notify.empty">暂无新通知</p>
+    <div class="notif-foot"><button class="btn btn-sm" id="notif-enable" type="button" data-i18n="notify.enableSystem">开启系统通知</button></div>
+  </section>
+
+  <main class="grid" id="main">
+    <!-- 双环 -->
+    <section class="card card--hero" id="sec-overview" aria-labelledby="hero-title">
+      <div class="card-head"><h2 class="card-title" id="hero-title" data-i18n="hero.title">周期用量 · 上下文压力</h2><span class="card-hint" id="quota-axis">—</span></div>
+      <div class="rings">
+        <div class="ring-unit" id="ring-quota" role="img" aria-label="本周期用量环">
+          <div class="ring">
+            <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="grad-cyan" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#37e0c8"/><stop offset="100%" stop-color="#2f9fd6"/></linearGradient><linearGradient id="grad-violet" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8b7cf6"/><stop offset="100%" stop-color="#c084fc"/></linearGradient></defs><circle class="ring-track" cx="60" cy="60" r="52"/><circle class="ring-progress" id="ring-quota-progress" cx="60" cy="60" r="52" pathLength="100" stroke="url(#grad-cyan)"/></svg>
+            <div class="ring-center"><strong class="ring-pct" id="quota-pct">—</strong><span class="ring-caption" id="quota-caption">本周期用量</span></div>
+          </div>
+          <dl class="facts"><div class="fact"><dt data-i18n="hero.remaining">剩余</dt><dd id="quota-remaining">—</dd></div><div class="fact"><dt data-i18n="hero.reset">重置</dt><dd><time id="quota-reset">—</time></dd></div><div class="fact"><dt data-i18n="hero.untilReset">距重置</dt><dd id="quota-countdown">—</dd></div></dl>
+        </div>
+        <div class="ring-unit" id="ring-ctx" role="img" aria-label="上下文压力环">
+          <div class="ring">
+            <svg class="ring-svg" viewBox="0 0 120 120" aria-hidden="true"><circle class="ring-track" cx="60" cy="60" r="52"/><circle class="ring-progress" id="ring-ctx-progress" cx="60" cy="60" r="52" pathLength="100" stroke="url(#grad-violet)"/></svg>
+            <div class="ring-center"><strong class="ring-pct" id="ctx-pct">—</strong><span class="ring-caption" id="ctx-caption">上下文压力</span></div>
+          </div>
+          <dl class="facts"><div class="fact"><dt data-i18n="hero.pressure">压力</dt><dd id="ctx-used">—</dd></div><div class="fact"><dt data-i18n="hero.etaCompaction">预计压缩</dt><dd id="ctx-eta">—</dd></div><div class="fact"><dt data-i18n="hero.compactions24h">24h 压缩</dt><dd id="ctx-compactions">—</dd></div></dl>
+        </div>
+      </div>
+      <img class="whale-watermark" src="./assets/pet/portrait.png" alt="">
+      <div class="hero-foot"><span><span data-i18n="hero.used">已用</span> <b class="hero-foot-value" id="quota-used">—</b></span><span class="hero-foot-sep">·</span><span><b class="hero-foot-value" id="hero-extra">—</b></span><span class="hero-foot-sep">·</span><span><b class="hero-foot-value" id="hero-balance">—</b></span><span class="hero-foot-sep">·</span><span><span data-i18n="hero.currentSession">当前会话</span> <b class="hero-foot-value is-truncate" id="ctx-title">—</b></span></div>
+    </section>
+
+    <!-- 配速 -->
+    <section class="card card--pace" aria-labelledby="pace-title">
+      <div class="card-head"><h2 class="card-title" id="pace-title" data-i18n="pace.title">配速</h2><span class="badge is-muted" id="pace-badge">配速未知</span></div>
+      <p class="pace-sentence" id="pace-sentence" data-i18n="common.loading">加载中…</p>
+      <div class="meter" id="pace-meter" role="progressbar" aria-label="本周期已用占比" data-i18n-aria="pace.meterAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="meter-fill" id="pace-fill"></i><span class="meter-tick" id="pace-tick"></span></div>
+      <div class="meter-legend"><span><span data-i18n="hero.used">已用</span> <b id="pace-actual">—</b></span><span><span data-i18n="pace.recommended">建议刻度</span> <b id="pace-recommended">—</b></span></div>
+      <div class="chips"><span class="chip"><span data-i18n="pace.todayUsed">周期已用</span> <b id="pace-today">—</b></span><span class="chip"><span data-i18n="pace.todayLeft">今日余量</span> <b id="pace-today-left">—</b></span><span class="chip"><span data-i18n="pace.avgRate">均速参考</span> <b id="pace-rate">—</b></span></div>
+    </section>
+
+    <!-- 今日建议 -->
+    <section class="card card--plan" aria-labelledby="plan-title">
+      <div class="card-head"><h2 class="card-title" id="plan-title" data-i18n="plan.title">今日建议用量</h2><span class="risk-chip" id="plan-risk">风险 —</span></div>
+      <div class="plan-main"><strong class="metric-value" id="plan-suggested">—</strong><span class="plan-sub" id="plan-remaining">—</span></div>
+      <div class="breakdowns" id="plan-breakdowns">
+        <div class="break-row" data-key="uniform"><span data-i18n="plan.uniform">均匀配速</span><div class="mini-meter"><i></i></div><b>—</b></div>
+        <div class="break-row" data-key="boost"><span data-i18n="plan.boost">重置风险加成</span><div class="mini-meter"><i></i></div><b>—</b></div>
+        <div class="break-row" data-key="cap"><span data-i18n="plan.cap">疲劳上限</span><div class="mini-meter"><i></i></div><b>—</b></div>
+      </div>
+      <div class="chips"><span class="chip"><span data-i18n="plan.dailyCap">个人上限</span> <b id="plan-daily-cap">—</b></span><span class="chip"><span data-i18n="plan.dayTotal">今日总建议</span> <b id="plan-day-total">—</b></span></div>
+      <p class="foot-note" data-i18n="plan.formula">建议 = min(剩余额度, 均匀配速 + 风险前移, 疲劳上限)</p>
+    </section>
+
+    <!-- 压缩预测 -->
+    <section class="card card--forecast" aria-labelledby="fc-title">
+      <div class="card-head"><h2 class="card-title" id="fc-title" data-i18n="forecast.title">压缩预测</h2><span class="chip is-quiet" data-i18n="forecast.nonOfficial">非官方启发式</span></div>
+      <div class="fc-top"><strong class="metric-value" id="fc-score">—</strong><div class="fc-chips"><span class="chip" id="fc-window">—</span><span class="chip" id="fc-source">—</span></div></div>
+      <div class="gauge" id="fc-gauge" role="progressbar" aria-label="24 小时窗口内触发上下文压缩的概率" data-i18n-aria="forecast.gaugeAria" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="fc-gauge-fill"></i><span class="gauge-marker" id="fc-gauge-marker"></span></div>
+      <div class="gauge-scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+      <p class="fc-eta" id="fc-eta">—</p>
+      <ul class="factors" id="fc-factors"><li class="empty sm" data-i18n="forecast.noFactors">暂无预测因子</li></ul>
+    </section>
+
+    <!-- 风险热力图 -->
+    <section class="card card--risk" aria-labelledby="risk-title">
+      <div class="card-head"><h2 class="card-title" id="risk-title" data-i18n="risk.title">风险热力图</h2><span class="card-hint" data-i18n="risk.hint">配速 × 压缩风险 → 建议用量</span></div>
+      <span class="risk-ylegend" id="risk-y-label" data-i18n="risk.yLabel">压缩风险 %</span>
+      <div class="risk-plot" id="risk-plot">
+        <canvas id="risk-canvas" role="img" aria-label="风险热力图"></canvas>
+        <div class="chart-tooltip" id="risk-tip" hidden></div>
+        <p class="chart-empty" id="risk-empty" data-i18n="risk.empty" hidden>暂无风险矩阵数据</p>
+      </div>
+      <span class="risk-xlegend" id="risk-x-label" data-i18n="risk.xLabel">配速（已用/建议 %）</span>
+    </section>
+
+    <!-- 洞察 -->
+    <section class="card card--insights" aria-labelledby="insights-title">
+      <div class="card-head"><h2 class="card-title" id="insights-title" data-i18n="insights.title">洞察</h2><span class="card-hint" id="insights-count">—</span></div>
+      <ul class="insights-list" id="insights-list" data-testid="insights"></ul>
+      <p class="empty sm" id="insights-empty" data-i18n="insights.empty">暂无洞察</p>
+    </section>
+
+    <!-- 趋势 -->
+    <section class="card card--trend" id="sec-usage" aria-labelledby="trend-title">
+      <div class="card-head">
+        <h2 class="card-title" id="trend-title" data-i18n="trend.title">趋势</h2>
+        <div class="head-tools"><span class="card-hint" id="trend-hint">—</span>
+          <div class="segmented" role="group" aria-label="趋势指标切换" data-i18n-aria="trend.metricAria">
+            <button class="seg-btn is-active" type="button" data-metric="tokens" aria-pressed="true" data-i18n="trend.metric.tokens">Token</button>
+            <button class="seg-btn" type="button" data-metric="cost" aria-pressed="false" data-i18n="trend.metric.cost">花费</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-wrap" id="trend-chart">
+        <canvas id="trend-canvas" role="img" aria-label="近 30 天用量柱状图与 7 日均线" aria-describedby="trend-desc"></canvas>
+        <div class="chart-tooltip" id="trend-tooltip" hidden></div>
+        <p class="chart-empty" id="trend-empty" hidden data-i18n="trend.empty">暂无趋势数据，等待后端完成首次扫描。</p>
+      </div>
+      <div class="chart-foot"><div class="legend" aria-hidden="true"><span class="legend-dot is-cyan"></span><span data-i18n="trend.legend.daily">日用量</span><span class="legend-dot is-amber"></span><span data-i18n="trend.legend.ma7">7 日均线</span></div><span class="sr-only" id="trend-desc"></span></div>
+    </section>
+
+    <!-- 任务 / 项目 / 子代理（全宽） -->
+    <section class="card card--tasks" id="sec-tasks" aria-labelledby="tasks-title">
+      <div class="card-head">
+        <h2 class="card-title" id="tasks-title" data-i18n="tasks.title">任务与项目</h2>
+        <div class="tabs" role="tablist" aria-label="任务、项目与子代理视图">
+          <button class="tab-btn is-active" id="tab-tasks" type="button" role="tab" aria-selected="true" aria-controls="panel-tasks" data-tab="tasks" data-testid="tab-tasks" data-i18n="tasks.tab.tasks">任务</button>
+          <button class="tab-btn" id="tab-projects" type="button" role="tab" aria-selected="false" aria-controls="panel-projects" data-tab="projects" data-testid="tab-projects" data-i18n="tasks.tab.projects">项目</button>
+          <button class="tab-btn" id="tab-subagents" type="button" role="tab" aria-selected="false" aria-controls="panel-subagents" data-tab="subagents" data-testid="tab-subagents" data-i18n="subagents.title">子代理</button>
+          <button class="tab-btn" id="tab-members" type="button" role="tab" aria-selected="false" aria-controls="panel-members" data-tab="members" data-testid="tab-members" data-i18n="team.tab">成员</button>
+        </div>
+      </div>
+      <div class="panel" id="panel-tasks" role="tabpanel" aria-labelledby="tab-tasks">
+        <div class="toolbar">
+          <label class="sr-only" for="task-search" data-i18n="tasks.searchAria">搜索任务</label>
+          <input class="input input--search" id="task-search" type="search" autocomplete="off" placeholder="搜索任务…" data-i18n-placeholder="tasks.search" data-testid="task-search">
+          <span class="toolbar-info" id="tasks-count">—</span>
+        </div>
+        <div class="table-wrap" data-testid="tasks-table">
+          <table class="data-table" aria-label="任务列表">
+            <thead><tr>
+              <th scope="col" data-i18n="tasks.col.task">任务</th>
+              <th scope="col" class="num" aria-sort="descending"><button class="sort-btn is-active" type="button" data-sort="tokens">Token</button></th>
+              <th scope="col" class="num hide-sm"><button class="sort-btn" type="button" data-sort="cost" data-i18n="tasks.col.cost">费用</button></th>
+              <th scope="col" class="num hide-md"><button class="sort-btn" type="button" data-sort="messages" data-i18n="tasks.col.messages">消息</button></th>
+              <th scope="col" class="hide-sm"><button class="sort-btn" type="button" data-sort="lastAt" data-i18n="tasks.col.last">最近</button></th>
+              <th scope="col" class="hide-md" data-i18n="tasks.col.share">占比</th>
+            </tr></thead>
+            <tbody id="tasks-body"></tbody>
+          </table>
+        </div>
+        <nav class="pagination" aria-label="任务分页" data-i18n-aria="tasks.paginationAria">
+          <button class="btn btn-sm" id="task-prev" type="button" data-testid="tasks-prev" data-i18n="tasks.prev">上一页</button>
+          <span class="pagination-info" id="task-pageinfo">—</span>
+          <button class="btn btn-sm" id="task-next" type="button" data-testid="tasks-next" data-i18n="tasks.next">下一页</button>
+        </nav>
+      </div>
+      <div class="panel" id="panel-projects" role="tabpanel" aria-labelledby="tab-projects" hidden>
+        <div class="table-wrap" data-testid="projects-table">
+          <table class="data-table" aria-label="项目列表">
+            <thead><tr>
+              <th scope="col" data-i18n="tasks.col.project">项目</th>
+              <th scope="col" class="num">Token</th>
+              <th scope="col" class="num hide-sm" data-i18n="tasks.col.cost">费用</th>
+              <th scope="col" class="num hide-sm" data-i18n="tasks.col.sessions">会话</th>
+              <th scope="col" class="num hide-md" data-i18n="tasks.col.tasks">任务数</th>
+              <th scope="col" class="hide-md" data-i18n="tasks.col.last">最近</th>
+            </tr></thead>
+            <tbody id="projects-body"></tbody>
+          </table>
+        </div>
+        <p class="empty sm" id="projects-empty" hidden data-i18n="tasks.emptyProjects">当前范围暂无项目数据</p>
+      </div>
+      <div class="panel" id="panel-subagents" role="tabpanel" aria-labelledby="tab-subagents" hidden>
+        <div class="subagents-tree" id="subagents-tree"></div>
+        <p class="empty sm" id="subagents-empty" hidden data-i18n="subagents.empty">暂无子代理数据</p>
+      </div>
+      <div class="panel" id="panel-members" role="tabpanel" aria-labelledby="tab-members" hidden>
+        <div class="team-bar">
+          <span class="team-plan" id="team-plan">—</span>
+          <form class="team-plan-edit" id="team-plan-edit" hidden>
+            <label class="sr-only" for="team-cap" data-i18n="team.capAria">每日 Token 上限</label>
+            <input class="input input--num" id="team-cap" type="number" min="0" step="1000000" inputmode="numeric" placeholder="每日上限 token">
+            <label class="sr-only" for="team-percent" data-i18n="team.percentAria">今日建议上限百分比</label>
+            <input class="input input--num" id="team-percent" type="number" min="10" max="100" step="5" placeholder="建议 %">
+            <button class="btn btn-sm" type="submit" data-i18n="team.save">保存计划</button>
+          </form>
+          <span class="toolbar-info" id="team-status">—</span>
+          <button class="btn btn-sm" id="team-refresh" type="button" data-testid="team-refresh" data-i18n="team.refresh">刷新</button>
+        </div>
+        <div class="team-bar team-dayplan" id="team-dayplan" hidden>
+          <label class="team-slider-label" for="team-share-slider">
+            <span data-i18n="team.myShare">我的份额</span>
+            <input id="team-share-slider" type="range" min="0" max="100" step="1" aria-label="我的份额百分比">
+            <output id="team-share-value">—</output>
+          </label>
+          <label class="team-slider-label" for="team-risk-input">
+            <span data-i18n="team.riskLabel">重置风险</span>
+            <input class="input input--num" id="team-risk-input" type="number" min="0" max="100" step="1" aria-label="重置风险百分比">
+            <span>%</span>
+          </label>
+          <button class="btn btn-sm" id="team-plan-save" type="button" data-testid="team-plan-save" data-i18n="team.saveDayPlan">保存当日计划</button>
+          <span class="toolbar-info" id="team-dayplan-status">—</span>
+        </div>
+        <div class="table-wrap" data-testid="members-table">
+          <table class="data-table" aria-label="成员列表">
+            <thead><tr>
+              <th scope="col" data-i18n="team.name">成员</th>
+              <th scope="col" class="hide-md" data-i18n="team.role">角色</th>
+              <th scope="col" class="num" data-i18n="team.todayTokens">今日 Token</th>
+              <th scope="col" class="num hide-sm" data-i18n="team.todayCost">今日费用</th>
+              <th scope="col" class="num hide-sm" data-i18n="team.planShare">计划占比</th>
+              <th scope="col" class="hide-md" data-i18n="team.lastSync">最后同步</th>
+              <th scope="col" data-i18n="team.actions">操作</th>
+            </tr></thead>
+            <tbody id="members-body"></tbody>
+          </table>
+        </div>
+        <p class="empty sm" id="members-empty" hidden data-i18n="team.empty">同步未开启或暂无成员</p>
+      </div>
+    </section>
+
+    <!-- 热力日历 -->
+    <section class="card card--heat" aria-labelledby="heat-title">
+      <div class="card-head"><h2 class="card-title" id="heat-title" data-i18n="heat.title">用量热力</h2><span class="card-hint" data-i18n="heat.hint">近 84 天 · 点击某天查看详情</span></div>
+      <div class="heat-wrap">
+        <div class="heat-grid" id="heatmap" role="grid" aria-label="近 84 天用量热力图" aria-describedby="heat-desc" tabindex="0"></div>
+        <div class="heat-tooltip" id="heat-tooltip" hidden></div>
+      </div>
+      <div class="heat-legend" aria-hidden="true"><span data-i18n="heat.less">少</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span data-i18n="heat.more">多</span></div>
+      <span class="sr-only" id="heat-desc"></span>
+    </section>
+
+    <!-- 舒适度（三合一） -->
+    <section class="card card--comfort" aria-labelledby="comfort-title">
+      <div class="card-head"><h2 class="card-title" id="comfort-title" data-i18n="comfort.title">舒适度</h2><span class="card-hint" id="comfort-recorded">—</span></div>
+      <div class="comfort-layout">
+        <div class="comfort-left">
+          <div class="comfort-buttons" id="comfort-buttons" role="group" aria-label="记录今日舒适度"></div>
+          <label class="note-label" for="comfort-note" data-i18n="comfort.note">备注（可选）</label>
+          <input class="input" id="comfort-note" type="text" maxlength="120" autocomplete="off" placeholder="例：今天任务偏重，长会话容易疲劳" data-i18n-placeholder="comfort.notePlaceholder">
+          <p class="foot-note" id="comfort-meta">—</p>
+        </div>
+        <div class="comfort-chart-block">
+          <h3 class="sub-title" data-i18n="comfort.binnedTitle">用量 × 体感</h3>
+          <div class="mini-chart"><canvas id="comfort-binned" role="img" aria-label="舒适度分箱柱状图"></canvas><p class="chart-empty" id="comfort-binned-empty" hidden></p></div>
+        </div>
+        <div class="comfort-chart-block">
+          <h3 class="sub-title" data-i18n="comfort.curveTitle">拟合曲线</h3>
+          <div class="mini-chart"><canvas id="comfort-curve" role="img" aria-label="舒适度拟合曲线"></canvas><p class="chart-empty" id="comfort-curve-empty" hidden></p></div>
+        </div>
+      </div>
+      <div class="comfort-history">
+        <h3 class="sub-title" data-i18n="comfort.historyTitle">历史记录</h3>
+        <div class="comfort-calendar" id="comfort-calendar"></div>
+        <p class="empty sm" id="comfort-history-empty" hidden data-i18n="comfort.noHistory">暂无历史舒适度记录</p>
+      </div>
+    </section>
+
+    <!-- 小票构建器 -->
+    <section class="card card--receipt" id="sec-receipt" aria-labelledby="receipt-title">
+      <div class="card-head"><h2 class="card-title" id="receipt-title" data-i18n="receipt.title">小票构建器</h2><span class="card-hint" id="receipt-selected">—</span></div>
+      <p class="foot-note" data-i18n="receipt.hint">勾选任务并生成 2× PNG，支持下载与剪贴板</p>
+      <label class="note-label" for="receipt-title-input" data-i18n="receipt.titleLabel">小票标题</label>
+      <input class="input" id="receipt-title-input" type="text" maxlength="60" placeholder="例如：本周使用小票" data-i18n-placeholder="receipt.titlePlaceholder">
+      <div class="receipt-task-head"><span class="note-label" data-i18n="receipt.selectTasks">选择任务（可多选）</span><div class="receipt-actions"><button class="btn btn-xs" id="receipt-select-all" type="button" data-i18n="receipt.selectAll">全选本页</button><button class="btn btn-xs" id="receipt-clear" type="button" data-i18n="receipt.clear">清空</button></div></div>
+      <div class="receipt-tasks" id="receipt-tasks"></div>
+      <p class="empty sm" id="receipt-tasks-empty" hidden data-i18n="receipt.noTasks">当前范围暂无任务可选</p>
+      <div class="receipt-totals"><span><span data-i18n="receipt.range">范围</span> <b id="receipt-range">—</b></span><span><span data-i18n="receipt.totalTokens">总 Token</span> <b id="receipt-tokens">—</b></span><span><span data-i18n="receipt.totalCost">总费用</span> <b id="receipt-cost">—</b></span></div>
+      <button class="btn btn-primary" id="receipt-btn" type="button" data-testid="receipt-generate" data-i18n="receipt.generate">生成小票</button>
+      <p class="foot-note" id="receipt-status" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- 分布 Top5（全宽） -->
+    <section class="card card--dist" aria-labelledby="dist-title">
+      <div class="card-head"><h2 class="card-title" id="dist-title" data-i18n="dist.title">分布 Top 5</h2><span class="card-hint" data-i18n="dist.hint">按 Token 用量</span></div>
+      <div class="dist-grid">
+        <div class="dist-col"><h3 class="dist-head" data-i18n="dist.models">模型</h3><div class="rank-list" id="dist-models"><p class="empty sm" data-i18n="dist.emptyModels">暂无模型数据</p></div></div>
+        <div class="dist-col"><h3 class="dist-head" data-i18n="dist.tools">工具调用</h3><div class="rank-list" id="dist-tools"><p class="empty sm" data-i18n="dist.emptyTools">暂无工具数据</p></div></div>
+        <div class="dist-col"><h3 class="dist-head" data-i18n="dist.sessions">会话</h3><div class="rank-list" id="dist-sessions"><p class="empty sm" data-i18n="dist.emptySessions">暂无会话数据</p></div></div>
+      </div>
+    </section>
+  </main>
+
+
+  <!-- 右侧系统状态轨 -->
+  <aside class="statusrail" aria-label="系统状态">
+    <div class="sr-panel">
+      <header><span>SYS // LIVE</span><b id="rail-clock">--:--:--</b></header>
+      <dl class="sr-list">
+        <div><dt>MODE</dt><dd id="rail-mode">—</dd></div>
+        <div><dt>REFRESH</dt><dd id="rail-sync">—</dd></div>
+        <div><dt>SCOPE</dt><dd id="rail-range">—</dd></div>
+      </dl>
+    </div>
+    <div class="sr-panel">
+      <header><span>OFFICIAL // 账户</span><b id="rail-account-state">—</b></header>
+      <div class="sr-bignum"><span id="rail-balance">—</span><small>CNY · BALANCE</small></div>
+      <dl class="sr-list">
+        <div><dt>TOTAL COST</dt><dd id="rail-total-cost">—</dd></div>
+        <div><dt>PRECISION</dt><dd id="rail-precision">—</dd></div>
+      </dl>
+    </div>
+    <div class="sr-panel">
+      <header><span>GATEWAY // 网关</span><b id="rail-gateway-state">—</b></header>
+      <dl class="sr-list">
+        <div><dt>REQUESTS</dt><dd id="rail-gw-req">—</dd></div>
+        <div><dt>TOKENS</dt><dd id="rail-gw-tokens">—</dd></div>
+      </dl>
+    </div>
+    <div class="sr-panel">
+      <header><span>ALERTS // 告警</span><b id="rail-alert-count">0</b></header>
+      <ul class="sr-alerts" id="rail-alerts"><li class="sr-empty">— 等待遥测 —</li></ul>
+    </div>
+  </aside>
+  <footer class="page-foot">
+    <p data-i18n="footer.note">数据来源：本地 DSH 会话（只读） · 零遥测 · 成本为估算，非官方账单</p>
+    <p class="foot-health" id="health-line">—</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- 日历下钻模态 -->
+  <div class="modal" id="calendar-modal" data-testid="calendar-modal" role="dialog" aria-modal="true" aria-labelledby="calendar-title" aria-label="日历下钻" data-i18n-aria="calendar.aria" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="calendar-title"><span data-i18n="calendar.title">日历下钻</span> <span class="modal-month" id="calendar-month">—</span></h2>
+        <div class="modal-actions">
+          <button class="btn btn-sm btn-icon-only" id="calendar-prev" type="button" aria-label="上个月" data-i18n-aria="calendar.prev">‹</button>
+          <button class="btn btn-sm btn-icon-only" id="calendar-next" type="button" aria-label="下个月" data-i18n-aria="calendar.next">›</button>
+          <button class="btn btn-sm btn-icon-only" id="calendar-close" type="button" aria-label="关闭日历" data-i18n-aria="calendar.close">×</button>
+        </div>
+      </div>
+      <div class="calendar-body">
+        <div class="calendar-left">
+          <div class="calendar-weekdays" id="calendar-weekdays" aria-hidden="true"></div>
+          <div class="calendar-grid" id="calendar-grid" role="grid" aria-labelledby="calendar-title"></div>
+        </div>
+        <aside class="calendar-detail" id="calendar-detail" aria-live="polite"></aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置抽屉 -->
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+    <div class="drawer-head"><h2 id="drawer-title" data-i18n="settings.title">设置</h2><button class="btn btn-icon-only" id="drawer-close" type="button" aria-label="关闭设置" data-i18n-aria="common.close">×</button></div>
+    <form class="drawer-form" id="settings-form" novalidate>
+      <section class="form-section">
+        <h3 data-i18n="settings.groupBudget">预算</h3>
+        <div class="field-row">
+          <div class="field"><label for="cfg-mode" data-i18n="settings.mode">预算模式</label><select class="input" id="cfg-mode"><option value="daily" data-i18n="settings.mode.daily">每日预算</option><option value="weekly" data-i18n="settings.mode.weekly">每周预算</option><option value="monthly" data-i18n="settings.mode.monthly">每月预算</option></select></div>
+          <div class="field"><label for="cfg-axis" data-i18n="settings.axis">额度轴</label><select class="input" id="cfg-axis"><option value="budget" data-i18n="settings.axis.budget">预算</option><option value="balance" data-i18n="settings.axis.balance">余额</option><option value="context" data-i18n="settings.axis.context">上下文</option></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="cfg-tokens" data-i18n="settings.tokens">Token 预算</label><input class="input" id="cfg-tokens" type="number" min="0" step="1000" inputmode="numeric" data-testid="budget-tokens" placeholder="2000000"></div>
+          <div class="field"><label for="cfg-cost" data-i18n="settings.cost">¥ 预算</label><input class="input" id="cfg-cost" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0"></div>
+        </div>
+        <div class="field"><label for="cfg-day-start" data-i18n="settings.dayStart">换日时刻（0–23 时）</label><input class="input" id="cfg-day-start" type="number" min="0" max="23" step="1" value="4"></div>
+        <div class="field-row">
+          <div class="field"><label for="cfg-daily-cap" data-i18n="settings.dailyCap">个人上限（%）</label><input class="range-input" id="cfg-daily-cap" type="range" min="60" max="100" step="1" value="90"><output class="range-value" id="cfg-daily-cap-value">90%</output></div>
+          <div class="field"><label for="cfg-day-total" data-i18n="settings.dayTotal">今日总建议（%）</label><input class="range-input" id="cfg-day-total" type="range" min="50" max="150" step="5" value="100"><output class="range-value" id="cfg-day-total-value">100%</output></div>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 data-i18n="settings.groupPricing">模型单价（¥ / 百万 Token）</h3>
+        <div class="pricing-scroll"><table class="pricing-table"><thead><tr><th scope="col" data-i18n="settings.pricingModel">模型</th><th scope="col" data-i18n="settings.pricingInput">输入</th><th scope="col" data-i18n="settings.pricingCacheRead">缓存读</th><th scope="col" data-i18n="settings.pricingCacheWrite">缓存写</th><th scope="col" data-i18n="settings.pricingOutput">输出</th></tr></thead><tbody id="pricing-rows"></tbody></table></div>
+        <p class="foot-note" data-i18n="settings.priceHint">单价为估算用，非官方账单；修改后立即用于成本重算。</p>
+      </section>
+      <section class="form-section">
+        <h3 data-i18n="settings.groupDisplay">显示</h3>
+        <div class="field-row">
+          <div class="field"><label for="cfg-theme" data-i18n="settings.theme">主题</label><select class="input" id="cfg-theme"><option value="dark" data-i18n="settings.theme.dark">深色</option><option value="light" data-i18n="settings.theme.light">浅色</option><option value="auto" data-i18n="settings.theme.auto">跟随系统</option></select></div>
+          <div class="field"><label for="cfg-font-scale" data-i18n="settings.fontScale">字号</label><select class="input" id="cfg-font-scale"><option value="0.9" data-i18n="settings.fontScale.small">小</option><option value="1" selected data-i18n="settings.fontScale.normal">标准</option><option value="1.15" data-i18n="settings.fontScale.large">大</option></select></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="cfg-density" data-i18n="settings.density">密度</label><select class="input" id="cfg-density"><option value="comfortable" data-i18n="settings.density.comfortable">舒适</option><option value="compact" data-i18n="settings.density.compact">紧凑</option></select></div>
+          <div class="field"><label for="cfg-lang" data-i18n="settings.language">语言</label><select class="input" id="cfg-lang"><option value="zh">中文</option><option value="en">English</option></select></div>
+        </div>
+        <label class="switch"><input id="cfg-mask" type="checkbox"><span data-i18n="settings.maskTitles">隐藏会话标题（打码）</span></label>
+      </section>
+      <section class="form-section">
+        <h3 data-i18n="settings.groupNotify">通知阈值</h3>
+        <label class="switch"><input id="cfg-notify-enabled" type="checkbox"><span data-i18n="settings.notifyEnabled">启用通知</span></label>
+        <div class="field-row">
+          <div class="field"><label for="cfg-budget-warn" data-i18n="settings.budgetWarn">预算预警阈值（%）</label><input class="input" id="cfg-budget-warn" type="number" min="0" max="100" step="1"></div>
+          <div class="field"><label for="cfg-budget-critical" data-i18n="settings.budgetCritical">预算严重阈值（%）</label><input class="input" id="cfg-budget-critical" type="number" min="0" max="100" step="1"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label for="cfg-compaction-score" data-i18n="settings.compactionScore">压缩预警阈值（0–100）</label><input class="input" id="cfg-compaction-score" type="number" min="0" max="100" step="1"></div>
+          <div class="field"><label for="cfg-notify-daily-cap" data-i18n="settings.notifyDailyCap">个人上限提醒（%）</label><input class="input" id="cfg-notify-daily-cap" type="number" min="0" max="100" step="1"></div>
+        </div>
+      </section>
+      <section class="form-section">
+        <h3 data-i18n="settings.groupSync">同步（只读）</h3>
+        <div class="readonly-grid">
+          <div class="readonly-row"><span data-i18n="settings.syncEnabled">同步开关</span><b id="sync-enabled">—</b></div>
+          <div class="readonly-row"><span data-i18n="settings.syncEndpoint">同步端点</span><b id="sync-endpoint">—</b></div>
+          <div class="readonly-row"><span data-i18n="settings.syncSpace">空间标识</span><b id="sync-space">—</b></div>
+        </div>
+        <p class="foot-note" data-i18n="settings.syncReadonly">同步由配置文件管理，此处仅只读展示。</p>
+      </section>
+      <section class="form-section">
+        <h3 data-i18n="settings.groupData">数据</h3>
+        <div class="data-actions"><button class="btn" id="backup-btn" type="button" data-i18n="settings.backup">下载备份</button><button class="btn" id="restore-btn" type="button" data-i18n="settings.restore">从备份恢复</button><input class="sr-only" id="restore-file" type="file" accept="application/json,.json"></div>
+        <p class="foot-note" id="data-status" role="status" aria-live="polite"></p>
+      </section>
+      <p class="form-error" id="cfg-error" role="alert" hidden></p>
+      <div class="drawer-actions"><button class="btn" id="drawer-cancel" type="button" data-i18n="common.cancel">取消</button><button class="btn btn-primary" id="cfg-save" type="submit" data-testid="settings-save" data-i18n="common.save">保存配置</button></div>
+    </form>
+  </aside>
+
+  <noscript><p class="noscript">本仪表盘需要启用 JavaScript 才能读取本地用量数据。</p></noscript>
+  <script type="module" src="./app.js?v=13"></script>
+  <script type="module" src="./lib/ui-shell.js?v=13"></script>
+</body>
+</html>
